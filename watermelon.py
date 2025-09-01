@@ -55,7 +55,6 @@ if "recording" not in st.session_state:
 client = OpenAI(api_key=OPENAI_API_KEY)
 recognizer = sr.Recognizer()
 
-
 # === TTS 함수 ===
 def play_tts(text):
     engine = pyttsx3.init()
@@ -65,62 +64,67 @@ def play_tts(text):
     engine.runAndWait()
     engine.stop()
 
+
 # === 음성 입력 함수 ===
 def listen_user():
     mic = sr.Microphone()
     with mic as source:
-        st.info("🎤 말씀해주세요...")
-        audio = recognizer.listen(source, phrase_time_limit=5)
+        st.markdown(
+        "<p style='text-align:center;'>음성 입력 받는 중...</p>",
+        unsafe_allow_html=True
+        )
+        audio = recognizer.listen(source, phrase_time_limit=10)
     try:
-        return recognizer.recognize_google(audio, language="ko-KR")
+        user_text = recognizer.recognize_google(audio, language="ko-KR")
+        return user_text
     except Exception as e:
         st.error(f"음성 인식 오류: {e}")
         return None
 
-# === GPT 응답 ===
+
+# === GPT 호출 함수 ===
 def get_gpt_response(user_text):
+    st.session_state["messages"].append({"role": "user", "content": user_text})
     response = client.chat.completions.create(
         model="gpt-4o",
-        messages=st.session_state.messages,
+        messages=st.session_state["messages"],
         temperature=0.3,
         max_tokens=2048
     )
     answer = response.choices[0].message.content
     answer = re.sub(r"[*-]", "", answer)
+    st.session_state["messages"].append({"role": "assistant", "content": answer})
     return answer
 
-# === 녹음 버튼 UI ===
 left, middle, right = st.columns([1, 2, 1])
 if middle.button("🎙️ 녹음 시작/중지", use_container_width=True):
-    st.session_state.recording = not st.session_state.recording
+    st.session_state.recording = not st.session_state.recording  # 상태 뒤집기
 
-# === 녹음 상태 처리 ===
+# 상태에 따라 메시지 표시
 if st.session_state.recording:
     user_text = listen_user()
     if user_text:
-        # 1️⃣ 사용자 말풍선 먼저 추가
-        st.session_state.messages.append({"role": "user", "content": user_text})
-        st.rerun()   # 즉시 rerun → 사용자 말풍선 먼저 보여줌
+        st.write(f"🕵️ 사용자: {user_text}")
 
-        # 2️⃣ GPT 호출
-        reply = None
         if user_text.strip() == "찾았다":
             reply = "필요하면 또 찾아와요!😊"
+            st.session_state["messages"].append({"role": "assistant", "content": reply})
             st.balloons()
+            st.write(f"🍉 Watermelon: {reply}")
+            play_tts(reply)
         else:
             reply = get_gpt_response(user_text)
-
-        # 3️⃣ 챗봇 답변 추가
-        st.session_state.messages.append({"role": "assistant", "content": reply})
-        play_tts(reply)
-        st.rerun()
-
+            st.write(f"🍉 Watermelon: {reply}")
+            play_tts(reply)
 else:
     st.markdown("<p style='text-align:center;'>원하는 노래를 찾아보세요!</p>", unsafe_allow_html=True)
 
+
 # === 대화 기록 표시 ===
-for msg in st.session_state.messages[1:]:  # system 제외
+
+for msg in st.session_state.messages[1:]:
     if msg["role"] == "user":
+        # 사용자 말풍선 (오른쪽)
         st.markdown(f"""
         <div style="text-align: right; margin: 5px;">
             <div style="
@@ -136,6 +140,7 @@ for msg in st.session_state.messages[1:]:  # system 제외
         </div>
         """, unsafe_allow_html=True)
     else:
+        # 봇 말풍선 (왼쪽)
         st.markdown(f"""
         <div style="text-align: left; margin: 5px;">
             <div style="
