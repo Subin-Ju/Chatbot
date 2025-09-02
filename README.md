@@ -1,5 +1,7 @@
 # 🍉 WaterMelon 🍉
 > 음성 입력 - STT - 챗봇 AI 응답 - TTS 과정을 활용한 보이스 챗봇 만들기
+<img width="2825" height="1470" alt="image" src="https://github.com/user-attachments/assets/4d46d7da-9c67-47ec-a36b-01d09aa1a755" />
+
 
 <br>
 <br>
